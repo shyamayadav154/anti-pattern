@@ -8,7 +8,7 @@ If you can calculate some information from the component’s props or its existi
 
 ## Examples
 
-### 1. data as `useEffect` Dependency
+### 1. `data` as `useEffect` dependency
 
 🛑 **Avoid**\
 In this example, the `data` returned from the `useLazyQuery` is used as a dependency in `useEffect` to update the `dashboardDetails` state, triggering a re-render of the component. However, this is unnecessary since `data` is already a state, and any state change will automatically re-render the component.
@@ -134,7 +134,7 @@ function MyDashboard(props) {
 🛑 **Avoid**\
 In this example, `homeType` and `userType` are stored in the component's state, but they can be derived directly from the session data. This avoids unnecessary state management and re-renders.
 
-```js showLineNumbers  {17,18}{24-27}
+```js showLineNumbers  {17,18}{24-28}
 export const CYPSafeguardingEditLayout = ({
   page = null,
   safeguardingId,
@@ -281,19 +281,8 @@ export const CYPSafeguardingEditLayout = ({
 -		if (session?.user?.currentHome?.type) setHomeType(session.user.currentHome.type)
 -		if (session?.user?.type) setUserType(session.user.type)
 -	}, [session])
-+ const userType = session?.user?.type || 'staff';
-+ const homeType = session?.user?.currentHome?.type || 'children_home';
-
-	useEffect(() => {
-		let updatedBreads = []
-		if (userType !== 'cyp') updatedBreads.push(CYPPage(homeType))
-		if (cypDetails) {
-			updatedBreads.push(CYPProfilePageWithTitle(cypDetails?.name, homeType, cypId), CYPLogsPage(cypId), CYPProfileSafeguardingLogsPage(cypId), ...breads)
-		} else {
-			updatedBreads.push(CYPLogsPage(cypId), CYPProfileSafeguardingLogsPage(cypId), ...breads)
-		}
-		setUpdatedBreads(updatedBreads)
-	}, [cypDetails, homeType, userType])
++   const userType = session?.user?.type || 'staff';
++   const homeType = session?.user?.currentHome?.type || 'children_home';
 
 	return (
 		<Layout page={page} breads={updatedBreads}>

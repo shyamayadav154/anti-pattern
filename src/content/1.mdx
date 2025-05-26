@@ -26,7 +26,7 @@ Since most pages fetch data immediately upon loading, `useQuery` can be used to 
 🛑 **Avoid**\
 In this example, `useLazyQuery` is utilized to fetch the dashboard items. However, this can be streamlined by using `useQuery` directly, as the data is required immediately upon the component's mount and it doesn't depend on any user interaction.
 
-```js filename="page/dashboard/index.js" showLineNumbers {6-11}{20-29}
+```js filename="page/dashboard/index.js" showLineNumbers {6-11}{20-27}
 function MyDashboard(props) {
   const { data: session } = useSession({ required: true });
   const userType = session?.user?.type;
@@ -154,3 +154,157 @@ Diff View
 -   }, [homes]);
 ```
 
+
+### 2. `useQuery` with refetch
+
+🛑 **Avoid**\
+In this example, `useLazyQuery` is used to fetch CYP daily in/out logs. However, this page is supposed to fetch data immediately upon loading, so `useQuery` should be used instead.
+
+You might think that since the query depends on `cypId` and `dateRange`, you should use `useLazyQuery` with `useEffect`. However, this isn't necessary because `useQuery` is designed to handle dynamic variables efficiently and will automatically refetch data whenever these variables change.
+
+
+```js showLineNumbers {6}{22-24}{30-33}
+function CYPReportsInOut(props) {
+	const { data: session } = useSession()
+	const { cypId, cypDetails, fetchingCYP } = useCYPProfile({})
+
+	// Get logs
+	const [getLogs, { loading, data }] = useLazyQuery(FETCH_CYP_DAILY_IN_OUTS,
+        {
+            fetchPolicy: 'no-cache',
+        }
+    )
+
+	// All logs
+	const [logs, setLogs] = useState([])
+
+	// Date filter
+	const [dateRange, setDateRange] = useState([dayjs().subtract(7, 'day').startOf('day'), dayjs().endOf('day')])
+
+	// Modal controls
+	const [isModalOpen, setIsModalOpen] = useState(false)
+	const [inOutDetails, setInOutDetails] = useState(null)
+
+	useEffect(() => {
+		if (dateRange.length && cypId) refetch()
+	}, [cypId, dateRange])
+
+	useEffect(() => {
+        // ...code
+	}, [data])
+
+	const refetch = () => {
+		getLogs({ variables: { cypId, startTime: dateRange[0].toISOString(), endTime: dateRange[1].toISOString() } })
+		setInOutDetails(null)
+	}
+
+	return (
+		<CYPProfileLayout >
+            {/* rest of the code */}
+        </CYPProfileLayout>
+	)
+}
+
+```
+
+
+
+✅ **Correct**\
+In this example
+
+```js showLineNumbers {9}{32}{25}{12-13} /getLogs/
+function CYPReportsInOut(props) {
+	const { data: session } = useSession()
+	const { cypId, cypDetails, fetchingCYP } = useCYPProfile({})
+
+	// Date filter
+	const [dateRange, setDateRange] = useState([dayjs().subtract(7, 'day').startOf('day'), dayjs().endOf('day')])
+
+	// Get logs
+	const { loading, data, refetch: getLogs } = useQuery(FETCH_CYP_DAILY_IN_OUTS,
+        {
+            fetchPolicy: 'no-cache',
+            skip: !cypId || !dateRange.length,
+            variables: { cypId, startTime: dateRange[0]?.toISOString(), endTime: dateRange?.[1]?.toISOString() }
+        }
+    )
+
+	// All logs
+	const [logs, setLogs] = useState([])
+
+
+	// Modal controls
+	const [isModalOpen, setIsModalOpen] = useState(false)
+	const [inOutDetails, setInOutDetails] = useState(null)
+
+    // useEffect removed since useQuery will handle this logic
+
+	useEffect(() => {
+        // ...code
+	}, [data])
+
+	const refetch = () => {
+		getLogs() // since we are using refetch from useQuery, it will refetch with the current variables automatically
+		setInOutDetails(null)
+	}
+
+	return (
+		<CYPProfileLayout>
+            {/* rest of the code (refetch for getLogs is used in side) */}
+        </CYPProfileLayout>
+	)
+}
+
+```
+
+Diff View
+
+```diff
+function CYPReportsInOut(props) {
+	const { data: session } = useSession()
+	const { cypId, cypDetails, fetchingCYP } = useCYPProfile({})
+
++	const [dateRange, setDateRange] = useState([dayjs().subtract(7, 'day').startOf('day'), dayjs().endOf('day')])
+
+	// Get logs
+-	const [getLogs, { loading, data }] = useLazyQuery(FETCH_CYP_DAILY_IN_OUTS,
++    const { loading, data, refetch: getLogs } = useQuery(FETCH_CYP_DAILY_IN_OUTS,
+        {
+            fetchPolicy: 'no-cache',
++            skip: !cypId || !dateRange.length,
++            variables: { cypId, startTime: dateRange[0]?.toISOString(), endTime: dateRange?.[1]?.toISOString() }
+        }
+    )
+
+	// All logs
+	const [logs, setLogs] = useState([])
+
+	// Date filter
+-	const [dateRange, setDateRange] = useState([dayjs().subtract(7, 'day').startOf('day'), dayjs().endOf('day')])
+
+	// Modal controls
+	const [isModalOpen, setIsModalOpen] = useState(false)
+	const [inOutDetails, setInOutDetails] = useState(null)
+
+-	useEffect(() => {
+-		if (dateRange.length && cypId) refetch()
+-	}, [cypId, dateRange])
+
+	useEffect(() => {
+        // ...code
+	}, [data])
+
+	const refetch = () => {
+-		getLogs({ variables: { cypId, startTime: dateRange[0].toISOString(), endTime: dateRange[1].toISOString() } })
++		getLogs() // since we are using refetch from useQuery, it will refetch with the current variables automatically
+		setInOutDetails(null)
+	}
+
+	return (
+		<CYPProfileLayout>
+            {/* rest of the code (refetch for getLogs is used in side) */}
+        </CYPProfileLayout>
+	)
+}
+
+```
