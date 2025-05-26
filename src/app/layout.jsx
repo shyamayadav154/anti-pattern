@@ -32,7 +32,7 @@ export default async function RootLayout({ children }) {
           <b>Anti Pattern</b>{" "}
         </div>
       }
-      chatLink="https://discord.gg/hEM84NMkRv"
+      projectLink="https://github.com/shyamayadav154/anti-pattern"
     />
   );
   const pageMap = await getPageMap();
@@ -44,7 +44,8 @@ export default async function RootLayout({ children }) {
           navbar={navbar}
           footer={<Footer>MIT {new Date().getFullYear()} © Nextra.</Footer>}
           editLink="Edit this page on GitHub"
-          docsRepositoryBase="https://github.com/shuding/nextra/blob/main/examples/docs"
+          // docsRepositoryBase="https://github.com/shuding/nextra/blob/main/examples/docs"
+          docsRepositoryBase="https://github.com/shyamayadav154/anti-pattern/blob/main"
           sidebar={{ defaultMenuCollapseLevel: 1 }}
           pageMap={pageMap}
         >
