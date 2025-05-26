@@ -2,3 +2,303 @@
 
 > [React Docs - Redundant State](https://react.dev/learn/choosing-the-state-structure#avoid-redundant-state)
 
+## Introduction
+
+If you can calculate some information from the component’s props or its existing state variables during rendering, you should not put that information into that component’s state.
+
+## Examples
+
+### 1. data as `useEffect` Dependency
+
+🛑 **Avoid**\
+In this example, the `data` returned from the `useLazyQuery` is used as a dependency in `useEffect` to update the `dashboardDetails` state, triggering a re-render of the component. However, this is unnecessary since `data` is already a state, and any state change will automatically re-render the component.
+
+```js filename="page/dashboard/index.js" showLineNumbers {31-36}{6}
+function MyDashboard(props) {
+  const { data: session } = useSession({ required: true });
+  const userType = session?.user?.type;
+  const isStaff = userType === "staff";
+
+  const [getDashboardItems, { loading = false, error, data }] = useLazyQuery(
+    FETCH_FEW_ALERT_TASK_SIGNOFF_GQL_QUERY,
+    {
+      fetchPolicy: "no-cache",
+    },
+  );
+
+  const [dashboardDetails, setDashboardDetails] = useState(
+    defaultDashboardDetails,
+  );
+
+  const { homes, setHomes, homesList } = useContext(homesFilterContext);
+
+  // Fetch from apollo
+  useEffect(() => {
+    if (homes.length > 0) {
+      // Fetch dashboard items
+      getDashboardItems({
+        variables: { homeIds: homes.map((home) => home.id) },
+      });
+    }
+  }, [homes]);
+
+  // Process data into tasks, signoffs and alerts
+
+  useEffect(() => {
+    if (!data) return;
+    const { dashboardDetails } = data;
+    if (!dashboardDetails) return;
+    setDashboardDetails(dashboardDetails);
+  }, [data]);
+
+  const {
+    alerts = [],
+    urgentAlerts = [],
+    alertsUrgentCount = 0,
+    alertsOverdueCount = 0,
+    tasks = [],
+    tasksUpcomingCount = 0,
+    tasksOverdueCount = 0,
+    signoffs = [],
+    signoffsUpcomingCount = 0,
+    signoffsOverdueCount = 0,
+  } = dashboardDetails;
+
+  return <LCAccess>{/* rest of the code */}</LCAccess>;
+}
+```
+
+✅ **Correct**\
+In this example, a constant variable `dashboardDetails` is used to store the dashboard details instead of state. This approach eliminates unnecessary state management and re-renders.
+
+```js filename="page/dashboard/index.js" showLineNumbers {12,18,16}
+function MyDashboard(props) {
+  const { data: session } = useSession({ required: true });
+  const userType = session?.user?.type;
+  const isStaff = userType === "staff";
+
+  const [getDashboardItems, { loading = false, error, data }] = useLazyQuery(
+    FETCH_FEW_ALERT_TASK_SIGNOFF_GQL_QUERY,
+    {
+      fetchPolicy: "no-cache",
+    },
+  );
+    // removed the state for dashboardDetails
+
+  const { homes, setHomes, homesList } = useContext(homesFilterContext);
+
+  const dashboardDetails = data?.dashboardDetails || defaultDashboardDetails;
+
+    // removed the useEffect
+
+  const {
+    alerts = [],
+    urgentAlerts = [],
+    alertsUrgentCount = 0,
+    alertsOverdueCount = 0,
+    tasks = [],
+    tasksUpcomingCount = 0,
+    tasksOverdueCount = 0,
+    signoffs = [],
+    signoffsUpcomingCount = 0,
+    signoffsOverdueCount = 0,
+  } = dashboardDetails;
+
+  return <LCAccess>{/* rest of the code */}</LCAccess>;
+}
+```
+
+
+Diff View
+
+```diff
+function MyDashboard(props) {
+-  const [dashboardDetails, setDashboardDetails] = useState(defaultDashboardDetails);
++  const dashboardDetails = data?.dashboardDetails || defaultDashboardDetails;
+
+
+- useEffect(() => {
+-   if (!data) return;
+-   const { dashboardDetails } = data;
+-   if (!dashboardDetails) return;
+-   setDashboardDetails(dashboardDetails);
+- }, [data]);
+
+  return <LCAccess>{/* rest of the code */}</LCAccess>;
+}
+
+```
+
+### 2. `homeType` and `userType` State
+
+🛑 **Avoid**\
+In this example, `homeType` and `userType` are stored in the component's state, but they can be derived directly from the session data. This avoids unnecessary state management and re-renders.
+
+```js showLineNumbers  {17,18}{24-27}
+export const CYPSafeguardingEditLayout = ({
+  page = null,
+  safeguardingId,
+  safeguardingDetails = {},
+  cypId,
+  cypDetails = null,
+  fetchingSafeguarding = false,
+  breads = [],
+  updatingSafeguarding,
+  isConfidential,
+  isArchived,
+  isEditable = true,
+  ...props
+}) => {
+  const [updatedBreads, setUpdatedBreads] = useState([]);
+
+  const [userType, setUserType] = useState("staff");
+  const [homeType, setHomeType] = useState("children_home");
+
+  const { data: session } = useSession();
+
+  const authorizedPersonnel = safeguardingDetails?.authorizedPersonnel;
+
+  useEffect(() => {
+    if (session?.user?.currentHome?.type)
+      setHomeType(session.user.currentHome.type);
+    if (session?.user?.type) setUserType(session.user.type);
+  }, [session]);
+
+  useEffect(() => {
+    let updatedBreads = [];
+    if (userType !== "cyp") updatedBreads.push(CYPPage(homeType));
+    if (cypDetails) {
+      updatedBreads.push(
+        CYPProfilePageWithTitle(cypDetails?.name, homeType, cypId),
+        CYPLogsPage(cypId),
+        CYPProfileSafeguardingLogsPage(cypId),
+        ...breads,
+      );
+    } else {
+      updatedBreads.push(
+        CYPLogsPage(cypId),
+        CYPProfileSafeguardingLogsPage(cypId),
+        ...breads,
+      );
+    }
+    setUpdatedBreads(updatedBreads);
+  }, [cypDetails, homeType, userType]);
+
+  return (
+    <Layout page={page} breads={updatedBreads}>
+      {/* rest of the code */}
+    </Layout>
+  );
+};
+```
+
+✅ **Correct**\
+In this corrected version, `homeType` and `userType` are derived directly from the session data, eliminating the need for redundant state variables. This simplifies the component and reduces unnecessary re-renders.
+
+```js showLineNumbers  {17,23,25,26}
+export const CYPSafeguardingEditLayout = ({
+  page = null,
+  safeguardingId,
+  safeguardingDetails = {},
+  cypId,
+  cypDetails = null,
+  fetchingSafeguarding = false,
+  breads = [],
+  updatingSafeguarding,
+  isConfidential,
+  isArchived,
+  isEditable = true,
+  ...props
+}) => {
+  const [updatedBreads, setUpdatedBreads] = useState([]);
+
+  // homeType and userType state removed
+
+  const { data: session } = useSession();
+
+  const authorizedPersonnel = safeguardingDetails?.authorizedPersonnel;
+
+  // useEffect to set those state removed
+
+  const userType = session?.user?.type || "staff";
+  const homeType = session?.user?.currentHome?.type || "children_home";
+
+  useEffect(() => {
+    let updatedBreads = [];
+    if (userType !== "cyp") updatedBreads.push(CYPPage(homeType));
+    if (cypDetails) {
+      updatedBreads.push(
+        CYPProfilePageWithTitle(cypDetails?.name, homeType, cypId),
+        CYPLogsPage(cypId),
+        CYPProfileSafeguardingLogsPage(cypId),
+        ...breads,
+      );
+    } else {
+      updatedBreads.push(
+        CYPLogsPage(cypId),
+        CYPProfileSafeguardingLogsPage(cypId),
+        ...breads,
+      );
+    }
+    setUpdatedBreads(updatedBreads);
+  }, [cypDetails, homeType, userType]);
+
+  return (
+    <Layout page={page} breads={updatedBreads}>
+      {/* rest of the code */}
+    </Layout>
+  );
+};
+```
+
+Diff View
+
+```diff
+export const CYPSafeguardingEditLayout = ({
+	page = null,
+	safeguardingId,
+	safeguardingDetails = {},
+	cypId,
+	cypDetails = null,
+	fetchingSafeguarding = false,
+	breads = [],
+	updatingSafeguarding,
+	isConfidential,
+	isArchived,
+	isEditable = true,
+	...props
+}) => {
+	const [updatedBreads, setUpdatedBreads] = useState([])
+
+-	const [userType, setUserType] = useState('staff')
+-	const [homeType, setHomeType] = useState('children_home')
+
+	const { data: session } = useSession()
+
+	const authorizedPersonnel = safeguardingDetails?.authorizedPersonnel
+
+-	useEffect(() => {
+-		if (session?.user?.currentHome?.type) setHomeType(session.user.currentHome.type)
+-		if (session?.user?.type) setUserType(session.user.type)
+-	}, [session])
++ const userType = session?.user?.type || 'staff';
++ const homeType = session?.user?.currentHome?.type || 'children_home';
+
+	useEffect(() => {
+		let updatedBreads = []
+		if (userType !== 'cyp') updatedBreads.push(CYPPage(homeType))
+		if (cypDetails) {
+			updatedBreads.push(CYPProfilePageWithTitle(cypDetails?.name, homeType, cypId), CYPLogsPage(cypId), CYPProfileSafeguardingLogsPage(cypId), ...breads)
+		} else {
+			updatedBreads.push(CYPLogsPage(cypId), CYPProfileSafeguardingLogsPage(cypId), ...breads)
+		}
+		setUpdatedBreads(updatedBreads)
+	}, [cypDetails, homeType, userType])
+
+	return (
+		<Layout page={page} breads={updatedBreads}>
+            {/* rest of the code */}
+        </Layout>
+	)
+}
+```

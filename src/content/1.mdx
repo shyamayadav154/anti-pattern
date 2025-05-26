@@ -1,2 +1,156 @@
 # 1. UseLazyQuery vs UseQuery
-> [Apollo Docs - Queries](https://www.apollographql.com/docs/react/data/queries)
+
+> [Apollo Docs - useLazyQuery](https://www.apollographql.com/docs/react/data/queries#manual-execution-with-uselazyquery)
+
+## Intoduction
+
+In Apollo Client, both `useQuery` and `useLazyQuery` are hooks used to fetch data from a GraphQL server, but they serve different purposes and have distinct behaviors.
+
+### `useQuery`
+
+- Use `useQuery` when you need the query to run automatically as the component renders, without any manual intervention.
+- Ideal for scenarios where data is required immediately upon component load.
+- Automatically re-runs the query when variables change, ensuring the data stays up-to-date.
+
+### `useLazyQuery`
+
+- Use `useLazyQuery` when you need to execute a query manually, rather than automatically on component render.
+- Ideal for scenarios where the query depends on user interaction, such as a button click or form submission.
+
+## Examples
+
+### 1. In Pages
+
+Since most pages fetch data immediately upon loading, `useQuery` can be used to automatically fetch the data, eliminating the need to use `useLazyQuery` with `useEffect`.
+
+🛑 **Avoid**\
+In this example, `useLazyQuery` is utilized to fetch the dashboard items. However, this can be streamlined by using `useQuery` directly, as the data is required immediately upon the component's mount and it doesn't depend on any user interaction.
+
+```js filename="page/dashboard/index.js" showLineNumbers {6-11}{20-29}
+function MyDashboard(props) {
+  const { data: session } = useSession({ required: true });
+  const userType = session?.user?.type;
+  const isStaff = userType === "staff";
+
+  const [getDashboardItems, { loading = false, error, data }] = useLazyQuery(
+    FETCH_FEW_ALERT_TASK_SIGNOFF_GQL_QUERY,
+    {
+        fetchPolicy: "no-cache",
+    },
+  );
+
+  const [dashboardDetails, setDashboardDetails] = useState(
+    defaultDashboardDetails,
+  );
+
+  const { homes, setHomes, homesList } = useContext(homesFilterContext);
+
+  // Fetch from apollo
+  useEffect(() => {
+    if (homes.length > 0) {
+      // Fetch dashboard items
+      getDashboardItems({
+        variables: { homeIds: homes.map((home) => home.id) },
+      });
+    }
+  }, [homes]);
+
+  // Process data into tasks, signoffs and alerts
+
+  useEffect(() => {
+    if (!data) return;
+    const { dashboardDetails } = data;
+    if (!dashboardDetails) return;
+    setDashboardDetails(dashboardDetails);
+  }, [data]);
+
+  const {
+    alerts = [],
+    urgentAlerts = [],
+    alertsUrgentCount = 0,
+    alertsOverdueCount = 0,
+    tasks = [],
+    tasksUpcomingCount = 0,
+    tasksOverdueCount = 0,
+    signoffs = [],
+    signoffsUpcomingCount = 0,
+    signoffsOverdueCount = 0,
+  } = dashboardDetails;
+
+  return <LCAccess>{/* rest of the code */}</LCAccess>;
+}
+```
+
+✅ **Correct**\
+In this example, `useQuery` is used to fetch the dashboard items directly. This is more efficient and cleaner since the data is needed immediately and doesn't required any user interaction to trigger the fetch.
+
+```js filename="page/dashboard/index.js" showLineNumbers {6,10,11, 20}
+function MyDashboard(props) {
+  const { data: session } = useSession({ required: true });
+  const userType = session?.user?.type;
+  const isStaff = userType === "staff";
+
+  const { loading = false, error, data, } = useQuery(
+        FETCH_FEW_ALERT_TASK_SIGNOFF_GQL_QUERY,
+        {
+            fetchPolicy: "no-cache",
+            variables: { homeIds: homes.map((home) => home.id) },
+            skip: homes.length === 0,
+        }
+    );
+
+  const [dashboardDetails, setDashboardDetails] = useState(
+    defaultDashboardDetails,
+  );
+
+  const { homes, setHomes, homesList } = useContext(homesFilterContext);
+  // removed useEffect from here since it's logic is handled by useQuery
+
+  useEffect(() => {
+    if (!data) return;
+    const { dashboardDetails } = data;
+    if (!dashboardDetails) return;
+    setDashboardDetails(dashboardDetails);
+  }, [data]);
+
+  const {
+    alerts = [],
+    urgentAlerts = [],
+    alertsUrgentCount = 0,
+    alertsOverdueCount = 0,
+    tasks = [],
+    tasksUpcomingCount = 0,
+    tasksOverdueCount = 0,
+    signoffs = [],
+    signoffsUpcomingCount = 0,
+    signoffsOverdueCount = 0,
+  } = dashboardDetails;
+
+  return <LCAccess>{/* rest of the code */}</LCAccess>;
+}
+```
+
+Diff View
+
+```diff
+
+-    const [getDashboardItems, { loading = false, error, data }] = useLazyQuery(
++    const { loading = false, error, data } = useQuery(
+        FETCH_FEW_ALERT_TASK_SIGNOFF_GQL_QUERY,
+        {
+            fetchPolicy: "no-cache",
++            variables: { homeIds: homes.map((home) => home.id) },
++            skip: homes.length === 0,
+        },
+    );
+
+-   useEffect(() => {
+-       if (homes.length > 0) {
+-           // Fetch dashboard items
+-           getDashboardItems({
+-               variables: { homeIds: homes.map((home) => home.id) },
+-           });
+-       }
+-   }, [homes]);
+```
+
