@@ -1,6 +1,7 @@
 # 2. Redundant State
 
-> [React Docs - Redundant State](https://react.dev/learn/choosing-the-state-structure#avoid-redundant-state)
+> [React Docs - Redundant State](https://react.dev/learn/choosing-the-state-structure#avoid-redundant-state)\
+> [React Docs - You Might Not need an Efect](https://react.dev/learn/you-might-not-need-an-effect)
 
 ## Introduction
 
@@ -68,7 +69,7 @@ function MyDashboard(props) {
 }
 ```
 
-✅ **Correct**\
+✅ **Good**\
 In this example, a constant variable `dashboardDetails` is used to store the dashboard details instead of state. This approach eliminates unnecessary state management and re-renders.
 
 ```js filename="page/dashboard/index.js" showLineNumbers {12,18,16}
@@ -192,8 +193,8 @@ export const CYPSafeguardingEditLayout = ({
 };
 ```
 
-✅ **Correct**\
-In this corrected version, `homeType` and `userType` are derived directly from the session data, eliminating the need for redundant state variables. This simplifies the component and reduces unnecessary re-renders.
+✅ **Good**\
+In this Gooded version, `homeType` and `userType` are derived directly from the session data, eliminating the need for redundant state variables. This simplifies the component and reduces unnecessary re-renders.
 
 ```js showLineNumbers  {17,23,25,26}
 export const CYPSafeguardingEditLayout = ({
