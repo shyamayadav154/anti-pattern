@@ -14,7 +14,7 @@ If you can calculate some information from the component’s props or its existi
 🛑 **Avoid**\
 In this example, the `data` returned from the `useLazyQuery` is used as a dependency in `useEffect` to update the `dashboardDetails` state, triggering a re-render of the component. However, this is unnecessary since `data` is already a state, and any state change will automatically re-render the component.
 
-```js filename="page/dashboard/index.js" showLineNumbers {31-36}{6}
+```js filename="page/dashboard/index.js" showLineNumbers {29-34}{13}
 function MyDashboard(props) {
   const { data: session } = useSession({ required: true });
   const userType = session?.user?.type;
@@ -27,9 +27,7 @@ function MyDashboard(props) {
     },
   );
 
-  const [dashboardDetails, setDashboardDetails] = useState(
-    defaultDashboardDetails,
-  );
+  const [dashboardDetails, setDashboardDetails] = useState(defaultDashboardDetails);
 
   const { homes, setHomes, homesList } = useContext(homesFilterContext);
 
@@ -84,13 +82,13 @@ function MyDashboard(props) {
       fetchPolicy: "no-cache",
     },
   );
-    // removed the state for dashboardDetails
+  // removed the state for dashboardDetails
 
   const { homes, setHomes, homesList } = useContext(homesFilterContext);
 
   const dashboardDetails = data?.dashboardDetails || defaultDashboardDetails;
 
-    // removed the useEffect
+  // removed the useEffect
 
   const {
     alerts = [],
@@ -108,7 +106,6 @@ function MyDashboard(props) {
   return <LCAccess>{/* rest of the code */}</LCAccess>;
 }
 ```
-
 
 Diff View
 
@@ -292,3 +289,7 @@ export const CYPSafeguardingEditLayout = ({
 	)
 }
 ```
+
+## Conclusion
+
+If a state is called inside just inside a `useEffect` hook and not anywhere(e.g in jsx part of code or in any other function) it is most likely a redundant state. You can remove the state and directly store it in a constant variable. This will help you to avoid unnecessary re-renders and make your code cleaner.
