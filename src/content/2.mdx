@@ -12,7 +12,7 @@ If you can calculate some information from the component’s props or its existi
 ### 1. `data` as `useEffect` dependency
 
 🛑 **Avoid**\
-In this example, the `data` returned from the `useLazyQuery` is used as a dependency in `useEffect` to update the `dashboardDetails` state, triggering a re-render of the component. However, this is unnecessary since `data` is already a state, and any state change will automatically re-render the component.
+In this example, the `data` returned from the `useLazyQuery` is used as a dependency in `useEffect` to update the `dashboardDetails` state, triggering a re-render of the component to show the updated data. However, this is unnecessary since `data` is already a state, and any state change will automatically re-render the component.
 
 ```js filename="page/dashboard/index.js" showLineNumbers {29-34}{13}
 function MyDashboard(props) {
@@ -68,9 +68,9 @@ function MyDashboard(props) {
 ```
 
 ✅ **Good**\
-In this example, a constant variable `dashboardDetails` is used to store the dashboard details instead of state. This approach eliminates unnecessary state management and re-renders.
+In this example, a constant variable `dashboardDetails` is used to store the dashboard details instead of state and state and effect associated to it is removed. This approach eliminates unnecessary state management and re-renders.
 
-```js filename="page/dashboard/index.js" showLineNumbers {12,18,16}
+```js filename="page/dashboard/index.js" showLineNumbers {12,28,16}
 function MyDashboard(props) {
   const { data: session } = useSession({ required: true });
   const userType = session?.user?.type;
@@ -86,9 +86,19 @@ function MyDashboard(props) {
 
   const { homes, setHomes, homesList } = useContext(homesFilterContext);
 
-  const dashboardDetails = data?.dashboardDetails || defaultDashboardDetails;
+  const dashboardDetails = data?.dashboardDetails || defaultDashboardDetails; // derived directly from data
 
-  // removed the useEffect
+  // Fetch from apollo
+  useEffect(() => {
+    if (homes.length > 0) {
+      // Fetch dashboard items
+      getDashboardItems({
+        variables: { homeIds: homes.map((home) => home.id) },
+      });
+    }
+  }, [homes]);
+
+  // removed the useEffect to set dashboardDetails
 
   const {
     alerts = [],

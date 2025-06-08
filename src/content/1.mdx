@@ -17,6 +17,61 @@ In Apollo Client, both `useQuery` and `useLazyQuery` are hooks used to fetch dat
 - Use `useLazyQuery` when you need to execute a query manually, rather than automatically on component render.
 - Ideal for scenarios where the query depends on user interaction, such as a button click or form submission.
 
+###  `useLazyQuey` fetcher function call inside `useEffect`
+
+Supppose you have component which is rendered in the page that needs to fetch data
+
+- 1. as soon as page loads and
+- 2. based on some conditions like change in date range or userId.
+
+Your first instinct might be to use the fetcher function from `useLazyQuey` and trigger the fetch whenever date range or userId changes using `useEffect`.
+
+```js showLineNumbers {7}{9-18}
+function Page({ userId }) {
+  // getData is the fetcher function returned by useLazyQuery
+  const [dateRange, setDateRange] = useState([startDate, endDate]);
+
+
+  // 🛑 Avoid using useLazyQuery with useEffect for initial data fetching
+  const [getData, { loading, data }] = useLazyQuery(MY_QUERY);
+
+  useEffect(() => {
+    if(!userId || !dateRange.length) return
+    getData({
+      variables: {
+        startTime: dateRange[0].toISOString(),
+        endTime: dateRange[1].toISOString(),
+        userId,
+      },
+    });
+  }, [dateRange, userId]);
+
+  // rest of the component
+}
+```
+
+This approach will work however it is not the intened way this library it is supposed to be used. Instead, you should use `useQuery` which is designed to handle initial data fetching and re-fetching based on variable changes.
+
+```js showLineNumbers {5-11}
+function Page({ userId }) {
+  const [dateRange, setDateRange] = useState([startDate, endDate]);
+
+  // ✅ Use useQuery for initial data fetching and re-fetching
+  const { loading, data } = useQuery(MY_QUERY, {
+    skip: !userId || !dateRange.length,
+    variables: {
+      startTime: dateRange[0].toISOString(),
+      endTime: dateRange[1].toISOString(),
+      userId,
+    },
+  });
+
+  // rest of the component
+}
+```
+
+In this example, data will be fetched immediately when the component mounts, and it will also re-fetch whenever `dateRange` or `userId` changes since change is `useQuery` variables will trigger a re-fetch automatically.
+
 ## Examples
 
 ### 1. In Pages
