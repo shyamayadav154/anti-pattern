@@ -5,23 +5,23 @@ import { getPageMap } from "nextra/page-map";
 import "nextra-theme-docs/style.css";
 
 export const metadata = {
-  metadataBase: new URL("https://nextra.site"),
+  metadataBase: new URL("https://anti-pattern-two.vercel.app/"),
   title: {
-    template: "%s - Nextra",
+    template: "%s - Anti Pattern",
   },
   description: "Nextra: the Next.js site builder",
-  applicationName: "Nextra",
+  applicationName: "Anti Pattern",
   generator: "Next.js",
   appleWebApp: {
-    title: "Nextra",
+    title: "Anti Pattern",
   },
   other: {
     "msapplication-TileImage": "/ms-icon-144x144.png",
     "msapplication-TileColor": "#fff",
   },
-  twitter: {
-    site: "https://nextra.site",
-  },
+  // twitter: {
+  //   site: "https://nextra.site",
+  // },
 };
 
 export default async function RootLayout({ children }) {
