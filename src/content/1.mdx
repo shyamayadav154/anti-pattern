@@ -1,42 +1,24 @@
-# 1. useLazyQuery fetch in useEffect for Initial Data Fetching
+# 1. `useLazyQuey` fetcher function call inside `useEffect`
 
 > [Apollo Docs - useLazyQuery](https://www.apollographql.com/docs/react/data/queries#manual-execution-with-uselazyquery)
-
-## Intoduction
-
-In Apollo Client, both `useQuery` and `useLazyQuery` are hooks used to fetch data from a GraphQL server, but they serve different purposes and have distinct behaviors.
-
-### `useQuery`
-
-- Use `useQuery` when you need the query to run automatically as the component renders, without any manual intervention.
-- Ideal for scenarios where data is required immediately upon component load.
-- Automatically re-runs the query when variables change, ensuring the data stays up-to-date.
-
-### `useLazyQuery`
-
-- Use `useLazyQuery` when you need to execute a query manually, rather than automatically on component render.
-- Ideal for scenarios where the query depends on user interaction, such as a button click or form submission.
-
-###  `useLazyQuey` fetcher function call inside `useEffect`
 
 Supppose you have component which is rendered in the page that needs to fetch data
 
 - 1. as soon as page loads and
 - 2. based on some conditions like change in date range or userId.
 
-Your first instinct might be to use the fetcher function from `useLazyQuey` and trigger the fetch whenever date range or userId changes using `useEffect`.
+Your first instinct might be to use the `fetcher(getData)` function from `useLazyQuey` and trigger the fetch whenever date range or userId changes using `useEffect`.
 
-```js showLineNumbers {7}{9-18}
+```js showLineNumbers {5}{8-18} /getData/ /useLazyQuery/
 function Page({ userId }) {
-  // getData is the fetcher function returned by useLazyQuery
+
   const [dateRange, setDateRange] = useState([startDate, endDate]);
 
-
-  // 🛑 Avoid using useLazyQuery with useEffect for initial data fetching
   const [getData, { loading, data }] = useLazyQuery(MY_QUERY);
 
+
   useEffect(() => {
-    if(!userId || !dateRange.length) return
+    if (!userId || !dateRange.length) return;
     getData({
       variables: {
         startTime: dateRange[0].toISOString(),
@@ -70,18 +52,16 @@ function Page({ userId }) {
 }
 ```
 
-In this example, data will be fetched immediately when the component mounts, and it will also re-fetch whenever `dateRange` or `userId` changes since change is `useQuery` variables will trigger a re-fetch automatically.
+In the this example, data will be fetched immediately when the component mounts, and it will also re-fetch whenever `dateRange` or `userId` changes since change is `useQuery` variables will trigger a re-fetch automatically.
 
 ## Examples
 
 ### 1. In Pages
 
-Since most pages fetch data immediately upon loading, `useQuery` can be used to automatically fetch the data, eliminating the need to use `useLazyQuery` with `useEffect`.
-
 🛑 **Avoid**\
-In this example, `useLazyQuery` is utilized to fetch the dashboard items. However, this can be streamlined by using `useQuery` directly, as the data is required immediately upon the component's mount and it doesn't depend on any user interaction.
+In the below example, `useLazyQuery` is utilized to fetch the dashboard items. However, this can be streamlined by using `useQuery` directly, as the data is required immediately upon the component's mount and it doesn't depend on any user interaction.
 
-```js filename="page/dashboard/index.js" showLineNumbers {6-11}{20-27}
+```js filename="page/dashboard/index.js" showLineNumbers {6-11}{17-25}
 function MyDashboard(props) {
   const { data: session } = useSession({ required: true });
   const userType = session?.user?.type;
@@ -90,17 +70,14 @@ function MyDashboard(props) {
   const [getDashboardItems, { loading = false, error, data }] = useLazyQuery(
     FETCH_FEW_ALERT_TASK_SIGNOFF_GQL_QUERY,
     {
-        fetchPolicy: "no-cache",
+      fetchPolicy: "no-cache",
     },
   );
 
-  const [dashboardDetails, setDashboardDetails] = useState(
-    defaultDashboardDetails,
-  );
+  const [dashboardDetails, setDashboardDetails] = useState( defaultDashboardDetails);
 
   const { homes, setHomes, homesList } = useContext(homesFilterContext);
 
-  // Fetch from apollo
   useEffect(() => {
     if (homes.length > 0) {
       // Fetch dashboard items
@@ -146,13 +123,13 @@ function MyDashboard(props) {
   const isStaff = userType === "staff";
 
   const { loading = false, error, data, } = useQuery(
-        FETCH_FEW_ALERT_TASK_SIGNOFF_GQL_QUERY,
-        {
-            fetchPolicy: "no-cache",
-            variables: { homeIds: homes.map((home) => home.id) },
-            skip: homes.length === 0,
-        }
-    );
+    FETCH_FEW_ALERT_TASK_SIGNOFF_GQL_QUERY, 
+    {
+      fetchPolicy: "no-cache",
+      variables: { homeIds: homes.map((home) => home.id) },
+      skip: homes.length === 0,
+    }
+  );
 
   const [dashboardDetails, setDashboardDetails] = useState(
     defaultDashboardDetails,
@@ -209,157 +186,13 @@ Diff View
 -   }, [homes]);
 ```
 
+## Extra Notes
 
-### 2. `useQuery` with refetch
+#### When should we call the `useLazyQuery` fetcher function inside the `useEffect` hook?
 
-🛑 **Avoid**\
-In this example, `useLazyQuery` is used to fetch CYP daily in/out logs. However, this page is supposed to fetch data immediately upon loading, so `useQuery` should be used instead.
+**Never**
 
-You might think that since the query depends on `cypId` and `dateRange`, you should use `useLazyQuery` with `useEffect`. However, this isn't necessary because `useQuery` is designed to handle dynamic variables efficiently and will automatically refetch data whenever these variables change.
+## Extra Notes
 
-
-```js showLineNumbers {6}{22-24}{30-33}
-function CYPReportsInOut(props) {
-	const { data: session } = useSession()
-	const { cypId, cypDetails, fetchingCYP } = useCYPProfile({})
-
-	// Get logs
-	const [getLogs, { loading, data }] = useLazyQuery(FETCH_CYP_DAILY_IN_OUTS,
-        {
-            fetchPolicy: 'no-cache',
-        }
-    )
-
-	// All logs
-	const [logs, setLogs] = useState([])
-
-	// Date filter
-	const [dateRange, setDateRange] = useState([dayjs().subtract(7, 'day').startOf('day'), dayjs().endOf('day')])
-
-	// Modal controls
-	const [isModalOpen, setIsModalOpen] = useState(false)
-	const [inOutDetails, setInOutDetails] = useState(null)
-
-	useEffect(() => {
-		if (dateRange.length && cypId) refetch()
-	}, [cypId, dateRange])
-
-	useEffect(() => {
-        // ...code
-	}, [data])
-
-	const refetch = () => {
-		getLogs({ variables: { cypId, startTime: dateRange[0].toISOString(), endTime: dateRange[1].toISOString() } })
-		setInOutDetails(null)
-	}
-
-	return (
-		<CYPProfileLayout >
-            {/* rest of the code */}
-        </CYPProfileLayout>
-	)
-}
-
-```
-
-
-
-✅ **Good**\
-In this example
-
-```js showLineNumbers {9}{32}{25}{12-13} /getLogs/
-function CYPReportsInOut(props) {
-	const { data: session } = useSession()
-	const { cypId, cypDetails, fetchingCYP } = useCYPProfile({})
-
-	// Date filter
-	const [dateRange, setDateRange] = useState([dayjs().subtract(7, 'day').startOf('day'), dayjs().endOf('day')])
-
-	// Get logs
-	const { loading, data, refetch: getLogs } = useQuery(FETCH_CYP_DAILY_IN_OUTS,
-        {
-            fetchPolicy: 'no-cache',
-            skip: !cypId || !dateRange.length,
-            variables: { cypId, startTime: dateRange[0]?.toISOString(), endTime: dateRange?.[1]?.toISOString() }
-        }
-    )
-
-	// All logs
-	const [logs, setLogs] = useState([])
-
-
-	// Modal controls
-	const [isModalOpen, setIsModalOpen] = useState(false)
-	const [inOutDetails, setInOutDetails] = useState(null)
-
-    // useEffect removed since useQuery will handle this logic
-
-	useEffect(() => {
-        // ...code
-	}, [data])
-
-	const refetch = () => {
-		getLogs() // since we are using refetch from useQuery, it will refetch with the current variables automatically
-		setInOutDetails(null)
-	}
-
-	return (
-		<CYPProfileLayout>
-            {/* rest of the code (refetch for getLogs is used in side) */}
-        </CYPProfileLayout>
-	)
-}
-
-```
-
-Diff View
-
-```diff
-function CYPReportsInOut(props) {
-	const { data: session } = useSession()
-	const { cypId, cypDetails, fetchingCYP } = useCYPProfile({})
-
-+	const [dateRange, setDateRange] = useState([dayjs().subtract(7, 'day').startOf('day'), dayjs().endOf('day')])
-
-	// Get logs
--	const [getLogs, { loading, data }] = useLazyQuery(FETCH_CYP_DAILY_IN_OUTS,
-+    const { loading, data, refetch: getLogs } = useQuery(FETCH_CYP_DAILY_IN_OUTS,
-        {
-            fetchPolicy: 'no-cache',
-+            skip: !cypId || !dateRange.length,
-+            variables: { cypId, startTime: dateRange[0]?.toISOString(), endTime: dateRange?.[1]?.toISOString() }
-        }
-    )
-
-	// All logs
-	const [logs, setLogs] = useState([])
-
-	// Date filter
--	const [dateRange, setDateRange] = useState([dayjs().subtract(7, 'day').startOf('day'), dayjs().endOf('day')])
-
-	// Modal controls
-	const [isModalOpen, setIsModalOpen] = useState(false)
-	const [inOutDetails, setInOutDetails] = useState(null)
-
--	useEffect(() => {
--		if (dateRange.length && cypId) refetch()
--	}, [cypId, dateRange])
-
-	useEffect(() => {
-        // ...code
-	}, [data])
-
-	const refetch = () => {
--		getLogs({ variables: { cypId, startTime: dateRange[0].toISOString(), endTime: dateRange[1].toISOString() } })
-+		getLogs() // since we are using refetch from useQuery, it will refetch with the current variables automatically
-		setInOutDetails(null)
-	}
-
-	return (
-		<CYPProfileLayout>
-            {/* rest of the code (refetch for getLogs is used in side) */}
-        </CYPProfileLayout>
-	)
-}
-
-```
+**How many times this anti pattern occurs in the codebase?**\
+**Ans:** 161 times out of 213 times `useLazyQuery` is used, which means 161 extra `useEffect` hooks are created just to call the fetcher function instead of using `useQuery` directly.

@@ -1,4 +1,4 @@
-# 2. Redundant State
+# 2. Duplicate State
 
 > [React Docs - Redundant State](https://react.dev/learn/choosing-the-state-structure#avoid-redundant-state)\
 > [React Docs - You Might Not need an Efect](https://react.dev/learn/you-might-not-need-an-effect)
@@ -9,7 +9,7 @@ If you can calculate some information from the component’s props or its existi
 
 ## Examples
 
-### 1. `data` as `useEffect` dependency
+### 1. to render item by invoking `setState` inside `useEffect`
 
 🛑 **Avoid**\
 In this example, the `data` returned from the `useLazyQuery` is used as a dependency in `useEffect` to update the `dashboardDetails` state, triggering a re-render of the component to show the updated data. However, this is unnecessary since `data` is already a state, and any state change will automatically re-render the component.
@@ -70,7 +70,7 @@ function MyDashboard(props) {
 ✅ **Good**\
 In this example, a constant variable `dashboardDetails` is used to store the dashboard details instead of state and state and effect associated to it is removed. This approach eliminates unnecessary state management and re-renders.
 
-```js filename="page/dashboard/index.js" showLineNumbers {12,28,16}
+```js filename="page/dashboard/index.js" showLineNumbers {28,16}
 function MyDashboard(props) {
   const { data: session } = useSession({ required: true });
   const userType = session?.user?.type;
@@ -82,11 +82,11 @@ function MyDashboard(props) {
       fetchPolicy: "no-cache",
     },
   );
-  // removed the state for dashboardDetails
 
   const { homes, setHomes, homesList } = useContext(homesFilterContext);
 
-  const dashboardDetails = data?.dashboardDetails || defaultDashboardDetails; // derived directly from data
+  // replaced the state with a constant variable, derived directly from data
+  const dashboardDetails = data?.dashboardDetails || defaultDashboardDetails;
 
   // Fetch from apollo
   useEffect(() => {
@@ -142,27 +142,16 @@ function MyDashboard(props) {
 🛑 **Avoid**\
 In this example, `homeType` and `userType` are stored in the component's state, but they can be derived directly from the session data. This avoids unnecessary state management and re-renders.
 
-```js showLineNumbers  {17,18}{24-28}
+```js showLineNumbers  {7,8}{13-17}
 export const CYPSafeguardingEditLayout = ({
-  page = null,
-  safeguardingId,
-  safeguardingDetails = {},
-  cypId,
-  cypDetails = null,
-  fetchingSafeguarding = false,
-  breads = [],
-  updatingSafeguarding,
-  isConfidential,
-  isArchived,
-  isEditable = true,
   ...props
 }) => {
-  const [updatedBreads, setUpdatedBreads] = useState([]);
+
+  const { data: session } = useSession();
 
   const [userType, setUserType] = useState("staff");
   const [homeType, setHomeType] = useState("children_home");
 
-  const { data: session } = useSession();
 
   const authorizedPersonnel = safeguardingDetails?.authorizedPersonnel;
 
@@ -172,25 +161,7 @@ export const CYPSafeguardingEditLayout = ({
     if (session?.user?.type) setUserType(session.user.type);
   }, [session]);
 
-  useEffect(() => {
-    let updatedBreads = [];
-    if (userType !== "cyp") updatedBreads.push(CYPPage(homeType));
-    if (cypDetails) {
-      updatedBreads.push(
-        CYPProfilePageWithTitle(cypDetails?.name, homeType, cypId),
-        CYPLogsPage(cypId),
-        CYPProfileSafeguardingLogsPage(cypId),
-        ...breads,
-      );
-    } else {
-      updatedBreads.push(
-        CYPLogsPage(cypId),
-        CYPProfileSafeguardingLogsPage(cypId),
-        ...breads,
-      );
-    }
-    setUpdatedBreads(updatedBreads);
-  }, [cypDetails, homeType, userType]);
+    // other code...
 
   return (
     <Layout page={page} breads={updatedBreads}>
@@ -203,53 +174,21 @@ export const CYPSafeguardingEditLayout = ({
 ✅ **Good**\
 In this Gooded version, `homeType` and `userType` are derived directly from the session data, eliminating the need for redundant state variables. This simplifies the component and reduces unnecessary re-renders.
 
-```js showLineNumbers  {17,23,25,26}
+```js showLineNumbers  {10,11}
 export const CYPSafeguardingEditLayout = ({
-  page = null,
-  safeguardingId,
-  safeguardingDetails = {},
-  cypId,
-  cypDetails = null,
-  fetchingSafeguarding = false,
-  breads = [],
-  updatingSafeguarding,
-  isConfidential,
-  isArchived,
-  isEditable = true,
   ...props
 }) => {
-  const [updatedBreads, setUpdatedBreads] = useState([]);
-
-  // homeType and userType state removed
 
   const { data: session } = useSession();
 
   const authorizedPersonnel = safeguardingDetails?.authorizedPersonnel;
 
-  // useEffect to set those state removed
-
+  //  replaced the state with constants, derived directly from session
   const userType = session?.user?.type || "staff";
   const homeType = session?.user?.currentHome?.type || "children_home";
 
-  useEffect(() => {
-    let updatedBreads = [];
-    if (userType !== "cyp") updatedBreads.push(CYPPage(homeType));
-    if (cypDetails) {
-      updatedBreads.push(
-        CYPProfilePageWithTitle(cypDetails?.name, homeType, cypId),
-        CYPLogsPage(cypId),
-        CYPProfileSafeguardingLogsPage(cypId),
-        ...breads,
-      );
-    } else {
-      updatedBreads.push(
-        CYPLogsPage(cypId),
-        CYPProfileSafeguardingLogsPage(cypId),
-        ...breads,
-      );
-    }
-    setUpdatedBreads(updatedBreads);
-  }, [cypDetails, homeType, userType]);
+
+    // other code...
 
   return (
     <Layout page={page} breads={updatedBreads}>
@@ -300,6 +239,12 @@ export const CYPSafeguardingEditLayout = ({
 }
 ```
 
-## Conclusion
+## Extra Notes
 
-If a state is called inside just inside a `useEffect` hook and not anywhere(e.g in jsx part of code or in any other function) it is most likely a redundant state. You can remove the state and directly store it in a constant variable. This will help you to avoid unnecessary re-renders and make your code cleaner.
+
+**How many times this anti-pattern occurs in the codebase?**\
+717 times, which simply means 717 unnecessary `useState` and `useEffect` which can just be a constant variable.
+
+
+
+
