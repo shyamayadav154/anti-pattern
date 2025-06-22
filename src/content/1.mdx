@@ -194,5 +194,8 @@ Diff View
 
 ## Extra Notes
 
-**How many times this anti pattern occurs in the codebase?**\
-**Ans:** 161 times out of 213 times `useLazyQuery` is used, which means 161 extra `useEffect` hooks are created just to call the fetcher function instead of using `useQuery` directly.
+**How many times this anti pattern occurs in our codebase?**\
+**Ans:** 75%(161/213) of the time `useLazyQuery` is used in our codebase, which means 161 extra `useEffect` which can be replaced with option passed to `useQuery` .
+
+**When to use `useLazyQuery`?**\
+**Ans:** if `data` returned by `useLazyQuey` doesn't show the it immediately when the component mounts, but rather requires some user interaction or specific conditions to trigger the fetch. For example, if you have a button that fetches data when clicked, or if you need to fetch data based on a specific event that doesn't occur on initial render. If it fetches data immediately when the component mounts, you should use `useQuery` instead.

@@ -241,10 +241,8 @@ export const CYPSafeguardingEditLayout = ({
 
 ## Extra Notes
 
+**How many times this anti-pattern occurs in our codebase?**\
+**Ans:** 717 times, which simply means 717 unnecessary `useState` and `useEffect` which can just be a constant variable.
 
-**How many times this anti-pattern occurs in the codebase?**\
-717 times, which simply means 717 unnecessary `useState` and `useEffect` which can just be a constant variable.
-
-
-
-
+**\*How to Identify this anti-pattern?**\
+**Ans:** If the setter function of a `useState` hook is only called inside `useEffect` and not used elsewhere in the component (like in JSX, event handlers, or other function).
