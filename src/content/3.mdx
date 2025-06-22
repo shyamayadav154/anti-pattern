@@ -1,0 +1,21 @@
+# 3. GraphQL Fragment
+
+import { Callout } from "nextra/components";
+
+<Callout type="warning">In progress</Callout>
+
+> Graphql principle:\
+> "You should only fetch the data you need"
+
+## Common Fragment
+
+Updating common fragment to reuse with new graphql queries seems like a good idea, to avoid code duplication and maintain consistency. However, it can also lead to the overfetcing of data in other parts of the application, which breaks the first principle of GraphQL: "You should only fetch the data you need".
+
+## Fragmant and hooks
+
+Hooks are by designed meant to be reusable, however fragments(specially common fragments) is not meant to be reused, so if you are reusing the hook, 90% of the time, you are probably over fetching data. Which again breaks the first principle of GraphQL: "You should only fetch the data you need".
+
+## Fragment and collocation
+
+Collocation is a design principle that suggests keeping related code together. In the context of GraphQL, collocating fragments with the components that use them can lead to better maintainability and clarity. This approach ensures that the fragment is only used where it is needed, reducing the risk of over-fetching data.
+
