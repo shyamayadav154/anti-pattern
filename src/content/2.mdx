@@ -1,20 +1,45 @@
-# 2. Duplicate State
+# 2. Duplicate/Redundant State
 
 > [React Docs - Redundant State](https://react.dev/learn/choosing-the-state-structure#avoid-redundant-state)\
-> [React Docs - You Might Not need an Efect](https://react.dev/learn/you-might-not-need-an-effect)
+> [React Docs - You Might Not need an Effect](https://react.dev/learn/you-might-not-need-an-effect)
 
-## Introduction
+## 📋 Table of Contents
+- [Problem Overview](#problem-overview)
+- [The Anti-Pattern](#the-anti-pattern)
+- [Recommended Solution](#recommended-solution)
+- [Examples](#examples)
+- [Migration Guide](#migration-guide)
+- [Performance Impact](#performance-impact)
+- [Detection Methods](#detection-methods)
+
+## 🚨 Problem Overview
+
+**TL;DR**: Storing derivable data in state creates unnecessary complexity and re-renders. Calculate values directly from props or existing state during rendering instead.
+
+**Impact**: This pattern occurs **717 times** in our codebase, meaning 717 unnecessary `useState` and `useEffect` combinations that can be simplified to constant variables.
+
+## ⚠️ The Anti-Pattern
 
 If you can calculate some information from the component’s props or its existing state variables during rendering, you should not put that information into that component’s state.
 
-## Examples
+**Common symptoms:**
+- `useState` setter only called inside `useEffect`
+- State that mirrors props or other state
+- Unnecessary re-renders from derived state updates
 
-### 1. to render item by invoking `setState` inside `useEffect`
+## ✅ Recommended Solution
 
-🛑 **Avoid**\
-In this example, the `data` returned from the `useLazyQuery` is used as a dependency in `useEffect` to update the `dashboardDetails` state, triggering a re-render of the component to show the updated data. However, this is unnecessary since `data` is already a state, and any state change will automatically re-render the component.
+Replace redundant state with **derived values** calculated directly during rendering. This eliminates unnecessary `useState` and `useEffect` combinations.
 
-```js filename="page/dashboard/index.js" showLineNumbers {29-34}{13}
+## 📚 Examples
+
+### 1. Dashboard Details State
+
+#### 🛑 **Avoid: Using `useState` + `useEffect` for derived data**
+
+In this example, the `data` returned from `useLazyQuery` is used as a dependency in `useEffect` to update the `dashboardDetails` state, triggering a re-render. However, this is unnecessary since `data` is already reactive, and any state change will automatically re-render the component.
+
+```js filename="page/dashboard/index.js" showLineNumbers {29-34}{13} /data/2,6
 function MyDashboard(props) {
   const { data: session } = useSession({ required: true });
   const userType = session?.user?.type;
@@ -67,8 +92,9 @@ function MyDashboard(props) {
 }
 ```
 
-✅ **Good**\
-In this example, a constant variable `dashboardDetails` is used to store the dashboard details instead of state and state and effect associated to it is removed. This approach eliminates unnecessary state management and re-renders.
+#### ✅ **Recommended: Direct derivation from props/state**
+
+In this example, a constant variable `dashboardDetails` is derived directly from the data instead of using state. This approach eliminates unnecessary state management and re-renders.
 
 ```js filename="page/dashboard/index.js" showLineNumbers {28,16}
 function MyDashboard(props) {
@@ -117,13 +143,12 @@ function MyDashboard(props) {
 }
 ```
 
-Diff View
+#### 🔄 **Migration Diff**
 
-```diff
+```diff filename="page/dashboard/index.js"
 function MyDashboard(props) {
 -  const [dashboardDetails, setDashboardDetails] = useState(defaultDashboardDetails);
 +  const dashboardDetails = data?.dashboardDetails || defaultDashboardDetails;
-
 
 - useEffect(() => {
 -   if (!data) return;
@@ -134,13 +159,15 @@ function MyDashboard(props) {
 
   return <LCAccess>{/* rest of the code */}</LCAccess>;
 }
-
 ```
 
-### 2. `homeType` and `userType` State
+**Code reduction:** -7 lines, -1 useState, -1 useEffect
 
-🛑 **Avoid**\
-In this example, `homeType` and `userType` are stored in the component's state, but they can be derived directly from the session data. This avoids unnecessary state management and re-renders.
+### 2. Session-derived State
+
+#### 🛑 **Avoid: Storing derived session values in state**
+
+In this example, `homeType` and `userType` are stored in the component's state, but they can be derived directly from the session data. This creates unnecessary state management and re-renders.
 
 ```js showLineNumbers  {7,8}{11-14}
 export const CYPSafeguardingEditLayout = ({
@@ -167,8 +194,9 @@ export const CYPSafeguardingEditLayout = ({
 };
 ```
 
-✅ **Good**\
-In this Gooded version, `homeType` and `userType` are derived directly from the session data, eliminating the need for redundant state variables. This simplifies the component and reduces unnecessary re-renders.
+#### ✅ **Recommended: Direct derivation from session data**
+
+In this improved version, `homeType` and `userType` are derived directly from the session data, eliminating the need for redundant state variables. This simplifies the component and reduces unnecessary re-renders.
 
 ```js showLineNumbers  {7-9}{13}
 export const CYPSafeguardingEditLayout = ({
@@ -193,9 +221,9 @@ export const CYPSafeguardingEditLayout = ({
 };
 ```
 
-Diff View
+#### 🔄 **Migration Diff**
 
-```diff
+```diff filename="CYPSafeguardingEditLayout.js"
 export const CYPSafeguardingEditLayout = ({
 	page = null,
 	safeguardingId,
@@ -234,10 +262,45 @@ export const CYPSafeguardingEditLayout = ({
 }
 ```
 
-## Extra Notes
+**Code reduction:** -8 lines, -2 useState, -1 useEffect
 
-**How many times this anti-pattern occurs in our codebase?**\
-**Ans:** 717 times, which simply means 717 unnecessary `useState` and `useEffect` which can just be a constant variable.
+## 🚀 Performance Impact
 
-**How to Identify this anti-pattern?**\
-**Ans:** If the setter function of a `useState` hook is only called inside `useEffect` and not used elsewhere in the component (like in JSX, or other function).
+**Codebase Statistics:**
+- **717 occurrences** of this anti-pattern
+- **717 unnecessary** `useState` and `useEffect` combinations
+- **Average 6-8 lines reduction** per component
+- **Fewer re-renders** due to eliminated state updates
+- **Better performance** with direct derivation
+
+## 🕵️ Detection Methods
+
+**How to identify this anti-pattern:**
+- `useState` setter function only called inside `useEffect`
+- State that directly mirrors props or other state
+- State updated immediately after another state/prop changes
+- No direct user interaction with the state setter
+
+## 📝 Migration Checklist
+
+- [ ] Identify state variables that are only set in `useEffect`
+- [ ] Check if the state can be derived from props or other state
+- [ ] Replace `useState` with `const` variable
+- [ ] Remove associated `useEffect` hook
+- [ ] Verify component behavior remains the same
+- [ ] Test for potential performance improvements
+- [ ] Update any TypeScript interfaces if needed
+
+## 💡 Best Practices
+
+### ✅ **Do:**
+- Derive values directly from props/state during render
+- Use `useMemo` for expensive calculations
+- Keep state minimal and focused
+- Prefer computed values over stored values
+
+### ❌ **Don't:**
+- Store values that can be calculated
+- Create state just to transform other state
+- Use `useEffect` to sync derived state
+- Over-complicate simple derivations
