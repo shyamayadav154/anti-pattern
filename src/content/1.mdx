@@ -61,7 +61,7 @@ In the this example, data will be fetched immediately when the component mounts,
 🛑 **Avoid**\
 In the below example, `useLazyQuery` is utilized to fetch the dashboard items. However, this can be streamlined by using `useQuery` directly, as the data is required immediately upon the component's mount and it doesn't depend on any user interaction.
 
-```js filename="page/dashboard/index.js" showLineNumbers {6-11}{17-25}
+```js filename="page/dashboard/index.js" showLineNumbers {6-11}{17-24}
 function MyDashboard(props) {
   const { data: session } = useSession({ required: true });
   const userType = session?.user?.type;
@@ -186,16 +186,146 @@ Diff View
 -   }, [homes]);
 ```
 
-## Extra Notes
 
-#### When should we call the `useLazyQuery` fetcher function inside the `useEffect` hook?
+### 2. In hooks
+In this example multiple useEffect is used to refetch the data, after the mutation is performed. This can be simplified by using `useMutation` with the `refetchQueries` option.
 
-**Never**
+
+🛑 **Avoid**
+
+```js showLineNumbers {8-13}{15-17}{19-23}{25-31}
+export const useSharpItems = ({ query = FETCH_SHARP_ITEMS, mutation = ADD_UPDATE_SHARP_ITEM }) => {
+	const [sharpItems, setSharpItems] = useState([])
+	const [filter, setFilter] = useState({})
+	const [getSharpItems, { loading, error, data }] = useLazyQuery(query, { fetchPolicy: 'no-cache' })
+	const [addUpdateSharpItem, {updateData,...others}] = useMutation(mutation)
+	const [deleteSharpItem, {deleteData,...others}] = useMutation(DELETE_SHARP_ITEM)
+
+	useEffect(() => {
+		if (data) {
+			const { sharpItems: sharpItemsData = [] } = data
+			if (sharpItemsData) setSharpItems(sharpItemsData)
+		}
+	}, [data])
+
+	useEffect(() => {
+		getSharpItems({ variables: { ...filter } })
+	}, [filter])
+
+	useEffect(() => {
+		if (updateData) {
+			getSharpItems()
+		}
+	}, [updateData])
+
+	useEffect(() => {
+		if (!deleteData) return
+		const { deleteSharpItem } = deleteData
+		if (deleteSharpItem) {
+			getSharpItems({ variables: { ...filter } })
+		}
+	}, [deleteData])
+
+	const onUpdateSharpItem = async update => {
+		if (!update) return
+		var updateObject = { ...update }
+		await addUpdateSharpItem({ variables: { sharpItemDetails: updateObject } })
+	}
+
+	return {
+        //...return items
+	}
+}
+
+```
+
+✅ **Good**
+
+This does the same thing as the above code, but it is more concise and easier to read.
+
+```js showLineNumbers {8,11,14}
+export const useSharpItems = ({ query = FETCH_SHARP_ITEMS, mutation = ADD_UPDATE_SHARP_ITEM }) => {
+	const [filter, setFilter] = useState({})
+	const { loading, error, data } = useQuery(query, {
+		fetchPolicy: 'no-cache',
+		variables: { ...filter }// replaces the useEffect at line 15-17
+	})
+
+	const sharpItems = data?.sharpItems || [] //removes the usEffect in the above code at line 8-13, state at line 2
+
+	const [addUpdateSharpItem, {updateData,...}] = useMutation(mutation, {
+		refetchQueries: [query] //this line replaces the useEffect in the above code 19-23
+	})
+	const [deleteSharpItem,{deleteData,...}] = useMutation(DELETE_SHARP_ITEM, {
+		refetchQueries: [query] // this line replaces the useEffect in the above code 25-31
+	})
+
+
+	const onUpdateSharpItem = async update => {
+		if (!update) return
+		var updateObject = { ...update }
+		await addUpdateSharpItem({ variables: { sharpItemDetails: updateObject } })
+	}
+
+	return {
+        //...return items
+	}
+}
+
+```
+
+Diff View
+
+```diff
+-    const [sharpItems, setSharpItems] = useState([])
+-    const [getSharpItems, { loading, error, data }] = useLazyQuery(query, { fetchPolicy: 'no-cache' })
++    const { loading, error, data } = useQuery(query, {
++        fetchPolicy: 'no-cache',
++        variables: { ...filter }
++    })
+
++    const sharpItems = data?.sharpItems || []
+
+     const [addUpdateSharpItem, {...}] = useMutation(mutation, {
++        refetchQueries: [query]
++    })
+     const [deleteSharpItem, {...}] = useMutation(DELETE_SHARP_ITEM, {
++        refetchQueries: [query]
+     })
+
+-    useEffect(() => {
+-        if (data) {
+-            const { sharpItems: sharpItemsData = [] } = data
+-            if (sharpItemsData) setSharpItems(sharpItemsData)
+-        }
+-    }, [data])
+
+-    useEffect(() => {
+-        getSharpItems({ variables: { ...filter } })
+-    }, [filter])
+
+-    useEffect(() => {
+-        if (updateData) {
+-            getSharpItems()
+-        }
+-    }, [updateData])
+
+-    useEffect(() => {
+-        if (!deleteData) return
+-        const { deleteSharpItem } = deleteData
+-        if (deleteSharpItem) {
+-            getSharpItems({ variables: { ...filter } })
+-        }
+-    }, [deleteData])
+
+```
+
+
 
 ## Extra Notes
 
 **How many times this anti pattern occurs in our codebase?**\
-**Ans:** 75%(161/213) of the time `useLazyQuery` is used in our codebase, which means 161 extra `useEffect` which can be replaced with option passed to `useQuery` .
+**Ans:** 161/213 of the time `useLazyQuery` is used in our codebase, which means 161 extra `useEffect` which can be replaced with options(skip, variables,refetchQueries) passed to `useQuery/UseMutation` .
 
 **When to use `useLazyQuery`?**\
 **Ans:** If `data` returned by `useLazyQuery` isn't needed immediately when the component mounts, but rather requires some user interaction or specific conditions to trigger the fetch, then `useLazyQuery` is appropriate. For example, if you have a button that fetches data when clicked, or if you need to fetch data based on a specific event that doesn't occur on initial render. If data needs to be fetched immediately when the component mounts, you should use `useQuery` instead.
