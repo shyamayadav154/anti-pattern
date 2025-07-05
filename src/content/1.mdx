@@ -243,12 +243,12 @@ export const useSharpItems = ({ query = FETCH_SHARP_ITEMS, mutation = ADD_UPDATE
 
 This does the same thing as the above code, but it is more concise and easier to read.
 
-```js showLineNumbers {8,11,14}
+```js showLineNumbers {8,11,14,5,3} /useQuery/
 export const useSharpItems = ({ query = FETCH_SHARP_ITEMS, mutation = ADD_UPDATE_SHARP_ITEM }) => {
 	const [filter, setFilter] = useState({})
 	const { loading, error, data } = useQuery(query, {
 		fetchPolicy: 'no-cache',
-		variables: { ...filter }// replaces the useEffect at line 15-17
+		variables: { ...filter }// replaces the useEffect at line 15-17 in the above code
 	})
 
 	const sharpItems = data?.sharpItems || [] //removes the usEffect in the above code at line 8-13, state at line 2
