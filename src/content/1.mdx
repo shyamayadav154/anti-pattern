@@ -116,7 +116,7 @@ function MyDashboard(props) {
 ✅ **Good**\
 In this example, `useQuery` is used to fetch the dashboard items directly. This is more efficient and cleaner since the data is needed immediately and doesn't required any user interaction to trigger the fetch.
 
-```js filename="page/dashboard/index.js" showLineNumbers {6,10,11, 20}
+```js filename="page/dashboard/index.js" showLineNumbers {6,10,11, 20} /useQuery/1
 function MyDashboard(props) {
   const { data: session } = useSession({ required: true });
   const userType = session?.user?.type;
