@@ -234,6 +234,99 @@ export const CYPSafeguardingEditLayout = ({
 }
 ```
 
+### 3. Storing returned `state` in other `states`
+
+🛑 **Avoid**
+
+In this example, the `placementPlans` are fetched using a custom hook `usePlacementPlan`, and the results are stored in a state variable `plans` and `activePlans`. However, since these can be derived directly from the fetched data(`placementPlans`), it is unnecessary to store them in state.
+
+```js showLineNumbers {7-8}{15-19} /placementPlans/1,5
+function CYPPlacementPlans(props) {
+	const router = useRouter()
+
+	const { cypId, cypDetails, fetchingCYP } = useCYPProfile({})
+	const childrenHome = 'children_home'
+
+	const [plans, setPlans] = useState([])
+	const [activePlans, setActivePlans] = useState([])
+	const [showAll, setShowAll] = useState(false)
+	const [homeType, setHomeType] = useState('children_home')
+	const { data: session } = useSession()
+
+	const { placementPlans, fetchingPlans, fetchingPlansError } = usePlacementPlan({ fetchDetails: true })
+
+	useEffect(() => {
+		if (!placementPlans) return
+		setPlans(placementPlans)
+		setActivePlans(placementPlans.filter(plan => !plan.isDeleted))
+	}, [placementPlans])
+
+
+return <>
+    {/* rest of the code */}
+  </>
+}
+```
+
+
+✅ **Good**
+
+
+```js showLineNumbers {7-8}{14,15,167} 
+function CYPPlacementPlans(props) {
+	const router = useRouter()
+
+	const { cypId, cypDetails, fetchingCYP } = useCYPProfile({})
+	const childrenHome = 'children_home'
+
+  // states reomved from here
+  //
+	const [showAll, setShowAll] = useState(false)
+	const [homeType, setHomeType] = useState('children_home')
+	const { data: session } = useSession()
+
+	const { placementPlans, fetchingPlans, fetchingPlansError } = usePlacementPlan({ fetchDetails: true })
+  const activePlans = placementPlans?.filter(plan => !plan.isDeleted) || []
+  const plans = placementPlans || []
+
+  // effect removed from here
+
+return <>
+    {/* rest of the code */}
+  </>
+}
+```
+Diff View
+
+```diff
+function CYPPlacementPlans(props) {
+	const router = useRouter()
+
+	const { cypId, cypDetails, fetchingCYP } = useCYPProfile({})
+	const childrenHome = 'children_home'
+
+-	const [plans, setPlans] = useState([])
+-	const [activePlans, setActivePlans] = useState([])
+	const [showAll, setShowAll] = useState(false)
+	const [homeType, setHomeType] = useState('children_home')
+	const { data: session } = useSession()
+
+	const { placementPlans, fetchingPlans, fetchingPlansError } = usePlacementPlan({ fetchDetails: true })
++	const activePlans = placementPlans?.filter(plan => !plan.isDeleted) || []
++	const plans = placementPlans || []
+
+-	useEffect(() => {
+-		if (!placementPlans) return
+-		setPlans(placementPlans)
+-		setActivePlans(placementPlans.filter(plan => !plan.isDeleted))
+-	}, [placementPlans])
+
+return <>
+    {/* rest of the code */}
+  </>
+}
+```
+
 ## Extra Notes
 
 **How many times this anti-pattern occurs in our codebase?**\
