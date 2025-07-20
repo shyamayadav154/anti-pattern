@@ -2,10 +2,10 @@
 
 > [Apollo Docs - useLazyQuery](https://www.apollographql.com/docs/react/data/queries#manual-execution-with-uselazyquery)
 
-Supppose you have component which is rendered in the page that needs to fetch data
+Suppose you have component which is rendered in the page that needs to fetch data
 
-- 1. as soon as page loads and
-- 2. based on some conditions like change in date range or userId.
+- 1. As soon as page loads and
+- 2. Based on some conditions like change in date range or userId.
 
 Your first instinct might be to use the `fetcher(getData)` function from `useLazyQuey` and trigger the fetch whenever date range or userId changes using `useEffect`.
 
@@ -32,7 +32,7 @@ function Page({ userId }) {
 }
 ```
 
-This approach will work however it is not the intened way this library it is supposed to be used. Instead, you should use `useQuery` which is designed to handle initial data fetching and re-fetching based on variable changes.
+This approach will work however it is not the intended way this library it is supposed to be used. Instead, you should use `useQuery` which is designed to handle initial data fetching and re-fetching based on variable changes.
 
 ```js showLineNumbers {5-11}
 function Page({ userId }) {
@@ -52,7 +52,7 @@ function Page({ userId }) {
 }
 ```
 
-In the this example, data will be fetched immediately when the component mounts, and it will also re-fetch whenever `dateRange` or `userId` changes since change is `useQuery` variables will trigger a re-fetch automatically.
+In this example, data will be fetched immediately when the component mounts, and it will also re-fetch whenever `dateRange` or `userId` changes since change is `useQuery` variables will trigger a re-fetch automatically.
 
 ## Examples
 

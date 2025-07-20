@@ -1,7 +1,7 @@
 # 2. Duplicate State
 
 > [React Docs - Redundant State](https://react.dev/learn/choosing-the-state-structure#avoid-redundant-state)\
-> [React Docs - You Might Not need an Efect](https://react.dev/learn/you-might-not-need-an-effect)
+> [React Docs - You Might Not need an effect](https://react.dev/learn/you-might-not-need-an-effect)
 
 ## Introduction
 
@@ -9,7 +9,7 @@ If you can calculate some information from the component’s props or its existi
 
 ## Examples
 
-### 1. to render item by invoking `setState` inside `useEffect`
+### 1. To render item by invoking `setState` inside `useEffect`
 
 🛑 **Avoid**\
 In this example, the `data` returned from the `useLazyQuery` is used as a dependency in `useEffect` to update the `dashboardDetails` state, triggering a re-render of the component to show the updated data. However, this is unnecessary since `data` is already a state, and any state change will automatically re-render the component.
@@ -168,7 +168,7 @@ export const CYPSafeguardingEditLayout = ({
 ```
 
 ✅ **Good**\
-In this Gooded version, `homeType` and `userType` are derived directly from the session data, eliminating the need for redundant state variables. This simplifies the component and reduces unnecessary re-renders.
+In this version, `homeType` and `userType` are derived directly from the session data, eliminating the need for redundant state variables. This simplifies the component and reduces unnecessary re-renders.
 
 ```js showLineNumbers  {7-9}{13}
 export const CYPSafeguardingEditLayout = ({
