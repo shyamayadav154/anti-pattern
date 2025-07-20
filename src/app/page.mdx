@@ -1,0 +1,30 @@
+---
+title: "Introduction"
+---
+
+## What is an Anti Pattern?
+
+An anti-pattern is a common approach to solving a problem that appears to be a good solution at first but actually turns out to be ineffective, counterproductive, or harmful in practice.
+
+Key characteristics of anti-patterns:
+
+- They seem like reasonable solutions initially
+- They're frequently used despite being problematic
+- They create more problems than they solve
+- They often emerge from good intentions or incomplete understanding
+---
+
+### Most used anti-patterns in our codebase:
+
+1.  [`useLazyQuey` fetcher function call inside `useEffect`](../docs/1.mdx) (163 times)
+2.  [Duplicate/Redundant State](../docs/2.mdx) (721 times)
+
+
+branch with custom eslint rule to show warning where this pattern is used
+```bash copy
+git checkout eslint-rule-anti-pattern
+```
+
+
+
+

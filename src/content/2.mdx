@@ -3,16 +3,13 @@
 > [React Docs - Redundant State](https://react.dev/learn/choosing-the-state-structure#avoid-redundant-state)\
 > [React Docs - You Might Not need an effect](https://react.dev/learn/you-might-not-need-an-effect)
 
-## Introduction
-
-If you can calculate some information from the component’s props or its existing state variables during rendering, you should not put that information into that component’s state.
 
 ## Examples
 
 ### 1. To render item by invoking `setState` inside `useEffect`
 
 🛑 **Avoid**\
-In this example, the `data` returned from the `useLazyQuery` is used as a dependency in `useEffect` to update the `dashboardDetails` state, triggering a re-render of the component to show the updated data. However, this is unnecessary since `data` is already a state, and any state change will automatically re-render the component.
+In the below example, the `data` returned from the `useLazyQuery` is used as a dependency in `useEffect` to update the `dashboardDetails` state, triggering a re-render of the component to show the updated data. However, this is unnecessary since `data` is already a state, and any state change will automatically re-render the component.
 
 ```js filename="page/dashboard/index.js" showLineNumbers {29-34}{13}
 function MyDashboard(props) {
@@ -68,7 +65,7 @@ function MyDashboard(props) {
 ```
 
 ✅ **Good**\
-In this example, a constant variable `dashboardDetails` is used to store the dashboard details instead of state and state and effect associated to it is removed. This approach eliminates unnecessary state management and re-renders.
+In the below example, a constant variable `dashboardDetails` is used to store the dashboard details instead of state and state and effect associated to it is removed. This approach eliminates unnecessary state management and re-renders.
 
 ```js filename="page/dashboard/index.js" showLineNumbers {28,16}
 function MyDashboard(props) {
@@ -117,9 +114,9 @@ function MyDashboard(props) {
 }
 ```
 
-Diff View
+Diff View: +1 line added,-6 line removed
 
-```diff
+```diff 
 function MyDashboard(props) {
 -  const [dashboardDetails, setDashboardDetails] = useState(defaultDashboardDetails);
 +  const dashboardDetails = data?.dashboardDetails || defaultDashboardDetails;
@@ -140,7 +137,7 @@ function MyDashboard(props) {
 ### 2. `homeType` and `userType` State
 
 🛑 **Avoid**\
-In this example, `homeType` and `userType` are stored in the component's state, but they can be derived directly from the session data. This avoids unnecessary state management and re-renders.
+In the below example, `homeType` and `userType` are stored in the component's state, but they can be derived directly from the session data. This avoids unnecessary state management and re-renders.
 
 ```js showLineNumbers  {7,8}{11-14}
 export const CYPSafeguardingEditLayout = ({
@@ -193,7 +190,7 @@ export const CYPSafeguardingEditLayout = ({
 };
 ```
 
-Diff View
+Diff View: + 2 lines added, -6 lines removed
 
 ```diff
 export const CYPSafeguardingEditLayout = ({
@@ -238,9 +235,9 @@ export const CYPSafeguardingEditLayout = ({
 
 🛑 **Avoid**
 
-In this example, the `placementPlans` are fetched using a custom hook `usePlacementPlan`, and the results are stored in a state variable `plans` and `activePlans`. However, since these can be derived directly from the fetched data(`placementPlans`), it is unnecessary to store them in state.
+In the below example, the `placementPlans` are fetched using a custom hook `usePlacementPlan`, and the results are stored in a state variable `plans` and `activePlans`. However, since these can be derived directly from the fetched data(`placementPlans`), it is unnecessary to store them in state.
 
-```js showLineNumbers {7-8}{15-19} /placementPlans/1,5
+```js showLineNumbers {7-8}{15-19} /placementPlans/1,5 /setPlans/ /setActivePlans/
 function CYPPlacementPlans(props) {
 	const router = useRouter()
 
@@ -272,31 +269,31 @@ return <>
 ✅ **Good**
 
 
-```js showLineNumbers {7-8}{14,15,167} 
+```js showLineNumbers {7-8}{14,15,17} 
 function CYPPlacementPlans(props) {
 	const router = useRouter()
 
 	const { cypId, cypDetails, fetchingCYP } = useCYPProfile({})
 	const childrenHome = 'children_home'
 
-  // states reomved from here
-  //
+  // plans state removed from here
+  // activePlans state removed here
 	const [showAll, setShowAll] = useState(false)
 	const [homeType, setHomeType] = useState('children_home')
 	const { data: session } = useSession()
 
 	const { placementPlans, fetchingPlans, fetchingPlansError } = usePlacementPlan({ fetchDetails: true })
-  const activePlans = placementPlans?.filter(plan => !plan.isDeleted) || []
-  const plans = placementPlans || []
+  const activePlans = placementPlans ? placementPlans?.filter(plan => !plan.isDeleted) : []
+  const plans = placementPlans ? placementPlans : []
 
-  // effect removed from here
+  // effect to set states removed
 
 return <>
     {/* rest of the code */}
   </>
 }
 ```
-Diff View
+Diff View: +2 lines added, -7 lines removed
 
 ```diff
 function CYPPlacementPlans(props) {
@@ -312,8 +309,8 @@ function CYPPlacementPlans(props) {
 	const { data: session } = useSession()
 
 	const { placementPlans, fetchingPlans, fetchingPlansError } = usePlacementPlan({ fetchDetails: true })
-+	const activePlans = placementPlans?.filter(plan => !plan.isDeleted) || []
-+	const plans = placementPlans || []
++	const activePlans = placementPlans ? placementPlans?.filter(plan => !plan.isDeleted) : []
++	const plans = placementPlans ? placementPlans : []
 
 -	useEffect(() => {
 -		if (!placementPlans) return
@@ -332,5 +329,5 @@ return <>
 **How many times this anti-pattern occurs in our codebase?**\
 **Ans:** 717 times, which simply means 717 unnecessary `useState` and `useEffect` which can just be a constant variable.
 
-**How to Identify this anti-pattern?**\
-**Ans:** If the setter function of a `useState` hook is only called inside `useEffect` and not used elsewhere in the component (like in JSX, or other function).
+**How to Identify if the state is duplicate?**\
+**Ans:** If the `setter` function of a `useState` hook is only called inside `useEffect(s)` and not used elsewhere in the component (like returned JSX, or any other function).
