@@ -153,7 +153,7 @@ In these cases, we can use `useQuery` directly with the `skip` option to handle 
 In the below example multiple `useEffect` is used to `refetch` the data, after the mutation is performed. This can be simplified by using `useMutation` with the `refetchQueries` option.
 
 
-```js showLineNumbers {8-13}{15-17}{19-23}{25-31}
+```js showLineNumbers {15-17}{19-23}{25-31}
 export const useSharpItems = ({ query = FETCH_SHARP_ITEMS, mutation = ADD_UPDATE_SHARP_ITEM }) => {
 	const [sharpItems, setSharpItems] = useState([])
 	const [filter, setFilter] = useState({})
@@ -203,15 +203,22 @@ export const useSharpItems = ({ query = FETCH_SHARP_ITEMS, mutation = ADD_UPDATE
 
 This does the same thing as the above code, but it is more concise and easier to read.
 
-```js showLineNumbers {8,11,14,5,3} /useQuery/
+```js showLineNumbers {4,6,18,21} /useQuery/
 export const useSharpItems = ({ query = FETCH_SHARP_ITEMS, mutation = ADD_UPDATE_SHARP_ITEM }) => {
+	const [sharpItems, setSharpItems] = useState([])
 	const [filter, setFilter] = useState({})
 	const { loading, error, data } = useQuery(query, {
 		fetchPolicy: 'no-cache',
 		variables: { ...filter }// replaces the useEffect at line 15-17 in the above code
 	})
 
-	const sharpItems = data?.sharpItems || [] //removes the usEffect in the above code at line 8-13, state at line 2
+
+	useEffect(() => {
+		if (data) {
+			const { sharpItems: sharpItemsData = [] } = data
+			if (sharpItemsData) setSharpItems(sharpItemsData)
+		}
+	}, [data])
 
 	const [addUpdateSharpItem, {updateData,...}] = useMutation(mutation, {
 		refetchQueries: [query] //this line replaces the useEffect in the above code 19-23
@@ -234,17 +241,15 @@ export const useSharpItems = ({ query = FETCH_SHARP_ITEMS, mutation = ADD_UPDATE
 
 ```
 
-Diff view: +8 lines added, -23 lines removed
+Diff view: +4 lines added, -16 lines removed
 
 ```diff
--    const [sharpItems, setSharpItems] = useState([])
+     const [sharpItems, setSharpItems] = useState([])
 -    const [getSharpItems, { loading, error, data }] = useLazyQuery(query, { fetchPolicy: 'no-cache' })
 +    const { loading, error, data } = useQuery(query, {
-+        fetchPolicy: 'no-cache',
+         fetchPolicy: 'no-cache',
 +        variables: { ...filter }
-+    })
-
-+    const sharpItems = data?.sharpItems || []
+     })
 
      const [addUpdateSharpItem, {...}] = useMutation(mutation, {
 +        refetchQueries: [query]
@@ -252,13 +257,6 @@ Diff view: +8 lines added, -23 lines removed
      const [deleteSharpItem, {...}] = useMutation(DELETE_SHARP_ITEM, {
 +        refetchQueries: [query]
      })
-
--    useEffect(() => {
--        if (data) {
--            const { sharpItems: sharpItemsData = [] } = data
--            if (sharpItemsData) setSharpItems(sharpItemsData)
--        }
--    }, [data])
 
 -    useEffect(() => {
 -        getSharpItems({ variables: { ...filter } })
@@ -287,9 +285,3 @@ Diff view: +8 lines added, -23 lines removed
 **How many times this anti pattern occurs in our codebase?**\
 **Ans:** In our codebase, `useLazyQuery` is incorrectly implemented 161 out of 213 times (75%), resulting in 161 unnecessary `useEffect` hooks that could be eliminated by utilizing the built-in options (`skip`, `variables`, `refetchQueries`) available in `useQuery`/`useMutation`.
 
-**When to use `useLazyQuery`?**\
-**Ans:** `useLazyQuey` should be used if:
-1.  You need to fetch data on a specific user action like button click and
-1. You don't need the data immediately when the component mounts.
-
-**both** should be true, otherwise you should use `useQuery` instead.

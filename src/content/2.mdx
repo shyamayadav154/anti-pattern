@@ -328,6 +328,3 @@ return <>
 
 **How many times this anti-pattern occurs in our codebase?**\
 **Ans:** 717 times, which simply means 717 unnecessary `useState` and `useEffect` which can just be a constant variable.
-
-**How to Identify if the state is duplicate?**\
-**Ans:** If the `setter` function of a `useState` hook is only called inside `useEffect(s)` and not used elsewhere in the component (like returned JSX, or any other function).
